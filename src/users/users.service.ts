@@ -1,9 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { UserEntity } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as argon2 from 'argon2';
+
+import { UserEntity } from './entities/user.entity';
+import { UpdateUserDto } from './dtos';
+import { UserErrorCodes } from './errors';
+
 import { SignupDto } from '@/auth/dtos';
-import { UserErrorCodes } from './errors/user-errors.enum';
 
 @Injectable()
 export class UsersService {
@@ -11,6 +15,16 @@ export class UsersService {
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
   ) {}
+
+  async checkEmailAndUsernameOrFail(email?: string, username?: string) {
+    if (email && (await this.findOneByEmail(email))) {
+      throw new BadRequestException(UserErrorCodes.EmailAlreadyExistsError);
+    }
+
+    if (username && (await this.findOneByUsername(username))) {
+      throw new BadRequestException(UserErrorCodes.UsernameAlreadyExistsError);
+    }
+  }
 
   async saveOrFail(user: UserEntity): Promise<UserEntity> {
     try {
@@ -21,31 +35,34 @@ export class UsersService {
   }
 
   async create(dto: SignupDto): Promise<UserEntity> {
-    if (await this.findOneByEmail(dto.email)) {
-      throw new BadRequestException(UserErrorCodes.EmailAlreadyExistsError);
-    }
-
-    if (await this.findOneByUsername(dto.username)) {
-      throw new BadRequestException(UserErrorCodes.UsernameAlreadyExistsError);
-    }
+    await this.checkEmailAndUsernameOrFail(dto.email, dto.username);
 
     const user = this.usersRepository.create(dto);
     user.isAdmin = false;
+    user.password = await argon2.hash(dto.password);
     return await this.saveOrFail(user);
   }
 
   async createAdmin(dto: SignupDto): Promise<UserEntity> {
-    if (await this.findOneByEmail(dto.email)) {
-      throw new BadRequestException(UserErrorCodes.EmailAlreadyExistsError);
-    }
-
-    if (await this.findOneByUsername(dto.username)) {
-      throw new BadRequestException(UserErrorCodes.UsernameAlreadyExistsError);
-    }
+    await this.checkEmailAndUsernameOrFail(dto.email, dto.username);
 
     const user = this.usersRepository.create(dto);
     user.isAdmin = true;
+    user.password = await argon2.hash(dto.password);
+
     return await this.saveOrFail(user);
+  }
+
+  async update(id: number, dto: UpdateUserDto) {
+    await this.checkEmailAndUsernameOrFail(dto.email, dto.username);
+
+    const user = await this.findOneOrFail(id);
+    return await this.usersRepository.update(user, dto);
+  }
+
+  async delete(id: number) {
+    const user = await this.findOneOrFail(id);
+    return await this.usersRepository.delete(user);
   }
 
   async findOne(id: number): Promise<UserEntity> {
@@ -57,10 +74,15 @@ export class UsersService {
   }
 
   async findOneOrFail(id: number): Promise<UserEntity> {
-    const user = this.findOne(id);
+    const user = await this.findOne(id);
+
     if (!user) {
       throw new BadRequestException(UserErrorCodes.NotFoundError);
     }
+
+    delete user.password;
+    delete user.isAdmin;
+    delete user.email;
 
     return user;
   }

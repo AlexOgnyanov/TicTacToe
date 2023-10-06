@@ -1,10 +1,12 @@
 import { Body, Controller, Post, UseGuards, Res } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
+
 import { AuthService } from './auth.service';
 import { LoginDto, SignupDto } from './dtos';
 import { AdminAuthGuard } from './guards';
+
 import { UsersService } from '@/users/users.service';
-import { ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')

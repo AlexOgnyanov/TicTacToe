@@ -1,17 +1,56 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
+
 import { UsersService } from './users.service';
-import { ApiTags } from '@nestjs/swagger';
+import { UpdateUserDto } from './dtos';
+
 import { RequestWithUserDto } from '@/auth/dtos';
 import { AuthGuard } from '@/auth/guards';
 
+@UseGuards(AuthGuard)
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
-  @UseGuards(AuthGuard)
   @Get('me')
   async getMe(@Req() req: RequestWithUserDto) {
     return await this.usersService.findOneOrFail(req.user.sub);
+  }
+
+  @Get(':id')
+  async getUser(@Param('id') id: number) {
+    return await this.usersService.findOneOrFail(id);
+  }
+
+  @ApiBody({ type: UpdateUserDto })
+  @Patch(':id')
+  async updateUser(
+    @Req() req: RequestWithUserDto,
+    @Body() updateUserDto: UpdateUserDto,
+    @Param('id') id: number,
+  ) {
+    if (id !== req.user.sub && !req.user.isAdmin) {
+      throw new UnauthorizedException();
+    }
+    return await this.usersService.update(id, updateUserDto);
+  }
+
+  @Delete(':id')
+  async deleteUser(@Req() req: RequestWithUserDto, @Param('id') id: number) {
+    if (id !== req.user.sub && !req.user.isAdmin) {
+      throw new UnauthorizedException();
+    }
+    return await this.usersService.delete(id);
   }
 }

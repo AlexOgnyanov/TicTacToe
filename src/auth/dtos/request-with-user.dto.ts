@@ -1,7 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { ContextUser } from './context-user.dto';
+import { ContextUserDto } from './context-user.dto';
 
 export class RequestWithUserDto {
-  @ApiProperty()
-  user: ContextUser;
+  user: ContextUserDto;
 }

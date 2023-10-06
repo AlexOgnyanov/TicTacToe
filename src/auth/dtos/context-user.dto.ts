@@ -1,5 +1,5 @@
-export class ContextUser {
-  id: number;
-  email: string;
+export class ContextUserDto {
+  sub: number;
+  username: string;
   isAdmin: boolean;
 }

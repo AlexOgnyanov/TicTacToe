@@ -1,29 +1,46 @@
-import { Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { Response } from 'express';
+import { Body, Controller, Post, UseGuards, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RequestWithUserDto } from './dtos';
-import { LocalAuthGuard } from './guards';
+import { LoginDto, SignupDto } from './dtos';
+import { AdminAuthGuard } from './guards';
+import { UsersService } from '@/users/users.service';
 import { ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService,
+  ) {}
 
-  @UseGuards(LocalAuthGuard)
+  @Post('signup')
+  signup(@Body() dto: SignupDto) {
+    return this.usersService.create(dto);
+  }
+
   @Post('login')
-  async login(
-    @Req() req: RequestWithUserDto,
+  async signIn(
+    @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<void> {
-    const { access_token } = await this.authService.login(req.user);
+  ) {
+    const accessToken = await this.authService.signIn(
+      dto.username,
+      dto.password,
+    );
     res
-      .cookie('access_token', access_token, {
+      .cookie('access_token', accessToken, {
         httpOnly: true,
         secure: false,
-        sameSite: 'lax',
+        sameSite: 'none',
         expires: new Date(Date.now() + 1 * 24 * 60 * 1000),
       })
-      .send({ status: 'ok' });
+      .sendStatus(200);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Post('admin/signup')
+  async adminSignup(@Body() dto: SignupDto) {
+    return this.usersService.createAdmin(dto);
   }
 }

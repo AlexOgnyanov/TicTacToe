@@ -9,16 +9,17 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dtos';
 
-import { RequestWithUserDto } from '@/auth/dtos';
+import { RequestWithUserDto } from '@/1/dtos';
 import { AuthGuard } from '@/auth/guards';
 
-@UseGuards(AuthGuard)
 @ApiTags('Users')
+@ApiBearerAuth('AccessToken')
+@UseGuards(AuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}

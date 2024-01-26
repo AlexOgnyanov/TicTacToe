@@ -5,7 +5,7 @@ services:
     ports:
       - ${DATABASE_PORT}:5432
     environment:
-      - POSTGRES_USER=${DATABASE_USERNAME}
+      - POSTGRES_USER=${DATABASE_USER}
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
       - POSTGRES_DB=${DATABASE_NAME}
     volumes:
@@ -15,8 +15,26 @@ services:
     env_file:
       - .env
 
+  redis:
+    image: redis/redis-stack:latest
+    restart: always
+    ports:
+      - '${REDIS_PORT}:6379'
+      - '${REDIS_INSIGHT_PORT}:8001'
+    environment:
+      - REDIS_ARGS=--requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis:/data
+    networks:
+      - backend
+    env_file:
+      - .env
+
 volumes:
   postgre:
+    driver: local
+
+  redis:
     driver: local
 
 networks:

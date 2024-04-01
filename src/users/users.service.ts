@@ -3,9 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as argon2 from 'argon2';
 
-import { UserEntity } from './entities/user.entity';
 import { UpdateUserDto } from './dtos';
 import { UserErrorCodes } from './errors';
+import { UserEntity } from './entities';
 
 import { SignupDto } from '@/auth/dtos';
 
@@ -80,11 +80,18 @@ export class UsersService {
       throw new BadRequestException(UserErrorCodes.NotFoundError);
     }
 
-    delete user.password;
-    delete user.isAdmin;
-    delete user.email;
-
     return user;
+  }
+
+  async findPendingGamesForUser(userId: number) {
+    return this.usersRepository.findOne({
+      relations: {
+        gamesReceived: true,
+      },
+      where: {
+        id: userId,
+      },
+    });
   }
 
   async findOneByEmail(email: string): Promise<UserEntity> {
